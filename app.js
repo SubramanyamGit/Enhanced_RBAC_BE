@@ -10,13 +10,26 @@ dotenv.config();
 
 app.use(express.json());
 
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://enhanced-rbac-fe-1.onrender.com",
+];
 
 // Middleware
 app.use(express.json());
-app.use(cors({
-  origin: "http://localhost:5173", // Frontend URL
-  credentials: true
-}));
+app.use(
+  cors({
+    origin(origin, callback) {
+      // allow mobile apps / curl (no origin)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      return callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
+    methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 
 // Initialize Routes
 routes.initialize(app);
@@ -27,5 +40,5 @@ app.use(errorHandler);
 // Start Server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", () => {
-   console.log(`  Server running on http://127.0.0.1:${PORT}`);
+  console.log(`  Server running on http://127.0.0.1:${PORT}`);
 });
