@@ -52,7 +52,7 @@ exports.signIn = async (req, res) => {
 
     res.json({
       token,
-      mustChangePassword: user.must_change_password,
+      mustChangePassword: !!user.must_change_password,
       user: {
         user_id: user.user_id,
         full_name: user.full_name,
