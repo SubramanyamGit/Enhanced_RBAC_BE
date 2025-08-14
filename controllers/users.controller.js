@@ -73,19 +73,21 @@ exports.createUser = async (req, res) => {
       },
     });
 
-    await sendMail({
-      to: email,
-      subject: "Your RBAC Account has been created",
-      html: `
-        <p>Hello ${full_name},</p>
-        <p>Your account has been created. You can sign in using the following:</p>
-        <ul>
-          <li><b>Email:</b> ${email}</li>
-          <li><b>Password:</b> ${password}</li>
-        </ul>
-        <p>Please change your password after first login.</p>
-      `,
-    });
+  await sendMail({
+  to: email,
+  subject: "Your RBAC Account has been created",
+  html: `
+    <p>Hello ${full_name},</p>
+    <p>Your account has been created. You can sign in using the following:</p>
+    <ul>
+      <li><b>Email:</b> ${email}</li>
+      <li><b>Password:</b> ${password}</li>
+    </ul>
+    <p>You can log in here: <a href="https://enhanced-rbac-fe-1.onrender.com" target="_blank">Click to Open RBAC Website</a></p>
+    <p>Please change your password after first login.</p>
+  `,
+});
+
 
     res.status(201).json({
       success: true,
