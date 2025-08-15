@@ -7,13 +7,11 @@ const adminOnly = require("../middlewares/adminOnly.middleware");
 //Protect all routes below
 router.use(authenticate);
 
-// All user routes are admin-only
-router.use(adminOnly); 
 
 router.get("/", departmentsController.getDepartments);
-router.get("/:id", departmentsController.getDepartmentById);
-router.post("/", departmentsController.createDepartment);
-router.patch("/:id", departmentsController.updateDepartment);
-router.delete("/:id", departmentsController.deleteDepartment);
+router.get("/:id", adminOnly,departmentsController.getDepartmentById);
+router.post("/", adminOnly,departmentsController.createDepartment);
+router.patch("/:id", adminOnly,departmentsController.updateDepartment);
+router.delete("/:id",adminOnly, departmentsController.deleteDepartment);
 
 module.exports = router;

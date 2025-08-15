@@ -11,7 +11,7 @@ router.use(authenticate);
 router.get("/my_permissions", usersController.getMyPermissions);
 
 // CRUD
-router.get("/", adminOnly, usersController.getUsers);
+router.get("/", usersController.getUsers);
 router.get("/:id", usersController.getUserById);
 router.post("/", adminOnly, usersController.createUser);
 router.patch("/:id", adminOnly, usersController.updateUser);

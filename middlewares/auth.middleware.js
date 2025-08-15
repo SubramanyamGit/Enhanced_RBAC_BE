@@ -23,7 +23,6 @@ const authenticate = (req, res, next) => {
         error: "Please change your password before accessing the system.",
       });
     }
-console.log("PASS");
 
     next();
   } catch (err) {
