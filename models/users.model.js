@@ -149,11 +149,13 @@ module.exports = {
         u.email,
         u.user_status,
         GROUP_CONCAT(r.name) AS roles,
-        ur.role_id
+        ur.role_id,
+        u.created_at,u.updated_at
       FROM users u
       LEFT JOIN user_roles ur ON u.user_id = ur.user_id
       LEFT JOIN roles r ON ur.role_id = r.role_id
       GROUP BY u.user_id, ur.role_id
+      ORDER BY u.updated_at DESC
     `);
     return rows;
   },

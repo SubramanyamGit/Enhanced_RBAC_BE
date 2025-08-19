@@ -13,31 +13,44 @@ exports.getDepartments = async (req, res) => {
 
     res.json(departments);
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch departments" });
+    console.error("Get Departments Error:", err);
+    res
+      .status(500)
+      .json({ code: "GET_DEPARTMENTS_FAILED", message: "Failed to fetch departments" });
   }
 };
 
 exports.getDepartmentById = async (req, res) => {
   try {
     const department = await departmentModel.getById(req.params.id);
-    if (!department) return res.status(404).json({ error: "Department not found" });
+    if (!department) {
+      return res.status(404).json({ code: "NOT_FOUND", message: "Department not found" });
+    }
 
     await logAudit({
       userId: req.user.user_id,
       actionType: "VIEW_DEPARTMENT",
-      details: `Viewed department ID ${req.params.id}`,
+      details: { department_id: req.params.id },
     });
 
     res.json(department);
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch department" });
+    console.error("Get Department By ID Error:", err);
+    res
+      .status(500)
+      .json({ code: "GET_DEPARTMENT_FAILED", message: "Failed to fetch department" });
   }
 };
 
 exports.createDepartment = async (req, res) => {
   try {
-    const { name, description } = req.body;
-    if (!name) return res.status(400).json({ error: "Name is required" });
+    let { name, description } = req.body || {};
+    name = (name || "").trim();
+    description = description ?? null;
+
+    if (!name) {
+      return res.status(400).json({ code: "VALIDATION_ERROR", message: "Name is required" });
+    }
 
     const result = await departmentModel.create({ name, description });
 
@@ -53,32 +66,49 @@ exports.createDepartment = async (req, res) => {
       department_id: result.department_id,
     });
   } catch (err) {
+    console.error("Create Department Error:", err);
     if (err.code === "DUPLICATE_DEPARTMENT") {
-      return res.status(409).json({ error: err.message });
+      return res.status(err.status || 409).json({ code: err.code, message: err.message });
     }
-    res.status(500).json({ error: "Failed to create department" });
+    res
+      .status(500)
+      .json({ code: "CREATE_DEPARTMENT_FAILED", message: "Failed to create department" });
   }
 };
 
 exports.updateDepartment = async (req, res) => {
   try {
-    const { name, description } = req.body;
-    const departmentId = req.params.id;
+    let { name, description } = (req.body || {});
+    name = (name || "").trim();
+    description = description ?? null;
 
-    await departmentModel.update(departmentId, { name, description });
+    if (!name) {
+      return res.status(400).json({ code: "VALIDATION_ERROR", message: "Name is required" });
+    }
+
+    // Ensure department exists
+    const existing = await departmentModel.getById(req.params.id);
+    if (!existing) {
+      return res.status(404).json({ code: "NOT_FOUND", message: "Department not found" });
+    }
+
+    await departmentModel.update(req.params.id, { name, description });
 
     await logAudit({
       userId: req.user.user_id,
       actionType: "UPDATE_DEPARTMENT",
-      details: { department_id: departmentId, updatedFields: { name, description } },
+      details: { department_id: req.params.id, updatedFields: { name, description } },
     });
 
     res.json({ success: true, message: "Department updated successfully" });
   } catch (err) {
+    console.error("Update Department Error:", err);
     if (err.code === "DUPLICATE_DEPARTMENT") {
-      return res.status(409).json({ error: err.message });
+      return res.status(err.status || 409).json({ code: err.code, message: err.message });
     }
-    res.status(500).json({ error: "Failed to update department" });
+    res
+      .status(500)
+      .json({ code: "UPDATE_DEPARTMENT_FAILED", message: "Failed to update department" });
   }
 };
 
@@ -86,16 +116,31 @@ exports.deleteDepartment = async (req, res) => {
   try {
     const departmentId = req.params.id;
 
-    await departmentModel.remove(departmentId);
+    const result = await departmentModel.remove(departmentId);
+
+    if (result?.notFound) {
+      return res.status(404).json({ code: "NOT_FOUND", message: "Department not found" });
+    }
 
     await logAudit({
       userId: req.user.user_id,
       actionType: "DELETE_DEPARTMENT",
-      details: `Deleted department ID ${departmentId}`,
+      details: { department_id: departmentId },
     });
 
     res.json({ success: true, message: "Department deleted successfully" });
   } catch (err) {
-    res.status(500).json({ error: "Failed to delete department" });
+    console.error("Delete Department Error:", err);
+
+    if (
+      err.code === "DEPARTMENT_IN_USE_ROLES" ||
+      err.code === "DEPARTMENT_FK_BLOCKED"
+    ) {
+      return res.status(err.status || 409).json({ code: err.code, message: err.message });
+    }
+
+    res
+      .status(500)
+      .json({ code: "DELETE_DEPARTMENT_FAILED", message: "Failed to delete department" });
   }
 };
