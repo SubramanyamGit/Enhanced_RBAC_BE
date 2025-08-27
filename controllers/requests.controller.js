@@ -7,7 +7,9 @@ const { getById } = require("../models/users.model");
 exports.getRequests = async (req, res) => {
   try {
     const status = req.query.status || "Pending"; // 'Pending', 'Approved', 'Rejected'
-    const isAdmin = ["admin", "super admin"].includes(req.user.role.toLowerCase());
+    const isAdmin = ["admin", "super admin"].includes(
+      req.user.role.toLowerCase()
+    );
     const requests = await requestModel.getAll({
       userId: req.user.user_id,
       isAdmin,
@@ -97,7 +99,7 @@ exports.approveRequest = async (req, res) => {
       return res.status(404).json({ error: "Requested user not found" });
     }
 
-    const requested_by_name = userResult.name;
+    const requested_by_name = userResult.full_name;
     const requested_by_email = userResult.email;
 
     //   2. Approve the request
@@ -138,10 +140,30 @@ exports.rejectRequest = async (req, res) => {
       rejection_reason,
     });
 
+    const { requested_by, permission_name } = req.body; // requested_by = user_id
+    const adminId = req.user.user_id;
+
+    const userResult = await getById(requested_by); // Assume this returns [{ name, email }]
+    if (!userResult) {
+      return res.status(404).json({ error: "Requested user not found" });
+    }
+
+    const requested_by_name = userResult.full_name;
+    const requested_by_email = userResult.email;
+
     await logAudit({
       userId: req.user.user_id,
       actionType: "REJECT_PERMISSION_REQUEST",
       details: { request_id: req.params.id, rejection_reason },
+    });
+
+    await sendMail({
+      to: requested_by_email,
+      subject: `Your Permission Request was Rejected`,
+      html: `
+        <p>Hello ${requested_by_name},</p>
+        <p>Your request for <b>${permission_name}</b> has been <strong>Rejected</strong> by Admin. The reason for rejection is <b>${rejection_reason}</b> </p>
+      `,
     });
 
     res.json({ message: "Request rejected" });
